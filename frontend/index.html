@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS // Transaction Risk & Fraud Detection Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-shell">
+
+        <!-- ======================================================== -->
+        <!-- NAVIGATION BAR                                           -->
+        <!-- ======================================================== -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="brand-badge">
+                    <svg class="shield-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <path d="m9 12 2 2 4-4"/>
+                    </svg>
+                </div>
+                <div class="brand-info">
+                    <div class="brand-title">
+                        <span class="brand-name">AEGIS</span>
+                        <span class="brand-tag">RISKOPS</span>
+                        <span class="brand-version mono">v2.4</span>
+                    </div>
+                    <div class="brand-sub">Credit Card Anomaly Detection & Fraud Prevention Engine</div>
+                </div>
+            </div>
+
+            <div class="header-center">
+                <nav class="nav-tabs" role="tablist">
+                    <button class="nav-tab active" data-tab="single" role="tab">
+                        <span class="tab-icon">🎯</span>
+                        <span>Transaction Inspector</span>
+                    </button>
+                    <button class="nav-tab" data-tab="batch" role="tab">
+                        <span class="tab-icon">📁</span>
+                        <span>Batch CSV Auditor</span>
+                    </button>
+                    <button class="nav-tab" data-tab="stream" role="tab">
+                        <span class="tab-icon">⚡</span>
+                        <span>Live Stream Radar</span>
+                    </button>
+                    <button class="nav-tab" data-tab="analytics" role="tab">
+                        <span class="tab-icon">📊</span>
+                        <span>Audit Log & Analytics</span>
+                    </button>
+                </nav>
+            </div>
+
+            <div class="header-right">
+                <div class="status-indicator-pill" id="backendStatusPill" title="Engine connection status">
+                    <span class="pulse-dot active"></span>
+                    <span id="backendStatusText">ENGINE ONLINE</span>
+                </div>
+                <button class="action-icon-btn" id="soundToggleBtn" title="Toggle Audio Alerts" aria-label="Audio alerts">
+                    <span id="soundIcon">🔊</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ======================================================== -->
+        <!-- LIVE STATS / KPI RIBBON                                  -->
+        <!-- ======================================================== -->
+        <section class="kpi-strip">
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap blue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                    </svg>
+                </div>
+                <div class="kpi-data">
+                    <div class="kpi-label">TOTAL TRANSACTIONS</div>
+                    <div class="kpi-value" id="kpiTotalScanned">0</div>
+                    <div class="kpi-sub" id="kpiTotalVolume">$0.00 Processed</div>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap rose">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div class="kpi-data">
+                    <div class="kpi-label">FRAUD INTERCEPTIONS</div>
+                    <div class="kpi-value text-rose" id="kpiThreatsCount">0</div>
+                    <div class="kpi-sub text-rose" id="kpiThreatsRate">0.0% Flag Rate</div>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap emerald">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <path d="M22 4 12 14.01l-3-3"/>
+                    </svg>
+                </div>
+                <div class="kpi-data">
+                    <div class="kpi-label">APPROVED LEGITIMATE</div>
+                    <div class="kpi-value text-emerald" id="kpiCleanCount">0</div>
+                    <div class="kpi-sub text-emerald">Verified Non-Anomalous</div>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-icon-wrap amber">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                </div>
+                <div class="kpi-data">
+                    <div class="kpi-label">DECISION THRESHOLD</div>
+                    <div class="kpi-value mono" id="kpiThreshold">0.036042</div>
+                    <div class="kpi-sub">Isolation Forest Calibrated</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ======================================================== -->
+        <!-- TAB 1: SINGLE TRANSACTION INSPECTOR                      -->
+        <!-- ======================================================== -->
+        <main class="tab-pane active" id="pane-single">
+            <!-- Preset Quick Loaders -->
+            <div class="card preset-card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Benchmark Validation Presets</h3>
+                        <p class="card-subtitle">Load validated transactions directly from the European cardholder evaluation dataset</p>
+                    </div>
+                </div>
+                <div class="preset-chips-grid" id="presetChipsContainer">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+            <div class="inspector-grid">
+                <!-- Transaction Form Panel -->
+                <div class="card form-panel">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Transaction Parameters</h3>
+                            <p class="card-subtitle">Adjust core monetary amount, timestamp, and PCA behavioral components</p>
+                        </div>
+                        <button class="btn-subtle" id="resetFormBtn">Reset to Default</button>
+                    </div>
+
+                    <form id="singlePredictForm">
+                        <div class="primary-inputs-row">
+                            <div class="input-group">
+                                <label for="txAmount">Transaction Amount ($ USD)</label>
+                                <div class="input-with-adornment">
+                                    <span class="adornment">$</span>
+                                    <input type="number" id="txAmount" name="Amount" step="0.01" min="0" value="149.62" required>
+                                </div>
+                                <div class="quick-adjust-chips">
+                                    <button type="button" class="chip-btn" data-amt="5.00">+$5</button>
+                                    <button type="button" class="chip-btn" data-amt="50.00">+$50</button>
+                                    <button type="button" class="chip-btn" data-amt="250.00">+$250</button>
+                                    <button type="button" class="chip-btn" data-amt="1000.00">+$1,000</button>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <label for="txTime">Transaction Timestamp (Seconds)</label>
+                                <input type="number" id="txTime" name="Time" step="1" min="0" value="9064" required>
+                                <span class="input-help">Elapsed seconds from first transaction in window</span>
+                            </div>
+                        </div>
+
+                        <!-- Key PCA Anomaly Factors -->
+                        <div class="pca-section-header">
+                            <h4>High-Variance Behavioral Components</h4>
+                            <span class="pca-badge">Key Fraud Drivers</span>
+                        </div>
+
+                        <div class="key-pca-grid">
+                            <div class="slider-control">
+                                <div class="slider-label-row">
+                                    <span class="slider-name">V14 (Cardholder Divergence)</span>
+                                    <span class="slider-val mono" id="v14ValDisplay">-0.311</span>
+                                </div>
+                                <input type="range" class="feature-slider" id="txV14" name="V14" min="-10" max="6" step="0.01" value="-0.311">
+                            </div>
+
+                            <div class="slider-control">
+                                <div class="slider-label-row">
+                                    <span class="slider-name">V4 (Transaction Velocity)</span>
+                                    <span class="slider-val mono" id="v4ValDisplay">1.378</span>
+                                </div>
+                                <input type="range" class="feature-slider" id="txV4" name="V4" min="-6" max="10" step="0.01" value="1.378">
+                            </div>
+
+                            <div class="slider-control">
+                                <div class="slider-label-row">
+                                    <span class="slider-name">V11 (Pattern Variance)</span>
+                                    <span class="slider-val mono" id="v11ValDisplay">-0.551</span>
+                                </div>
+                                <input type="range" class="feature-slider" id="txV11" name="V11" min="-6" max="10" step="0.01" value="-0.551">
+                            </div>
+
+                            <div class="slider-control">
+                                <div class="slider-label-row">
+                                    <span class="slider-name">V12 (Account Deviation)</span>
+                                    <span class="slider-val mono" id="v12ValDisplay">-0.617</span>
+                                </div>
+                                <input type="range" class="feature-slider" id="txV12" name="V12" min="-12" max="6" step="0.01" value="-0.617">
+                            </div>
+                        </div>
+
+                        <!-- Collapsible Full PCA Features Accordion -->
+                        <details class="advanced-accordion" id="advancedPcaDetails">
+                            <summary class="accordion-summary">
+                                <span>Inspect Full Feature Space (V1 through V28)</span>
+                                <span class="accordion-arrow">▼</span>
+                            </summary>
+                            <div class="full-pca-grid" id="fullPcaInputsContainer">
+                                <!-- Populated dynamically V1-V28 -->
+                            </div>
+                        </details>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary" id="inspectTxBtn">
+                                <span class="btn-icon">⚡</span>
+                                <span>Execute Fraud Risk Analysis</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Verdict & Anomaly Result Dashboard -->
+                <div class="card result-panel">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Risk Assessment</h3>
+                            <p class="card-subtitle">Real-time Isolation Forest Anomaly Scoring</p>
+                        </div>
+                        <div class="verdict-time mono" id="verdictTimestamp">STANDBY</div>
+                    </div>
+
+                    <!-- Risk Gauge Meter -->
+                    <div class="gauge-container">
+                        <svg class="radial-gauge" viewBox="0 0 200 120">
+                            <!-- Background track -->
+                            <path class="gauge-track" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="14" stroke-linecap="round"/>
+                            <!-- Active colored fill -->
+                            <path class="gauge-fill" id="gaugeArc" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#10b981" stroke-width="14" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round"/>
+                        </svg>
+                        <div class="gauge-center-content">
+                            <div class="gauge-percentage" id="gaugeRiskPercent">0%</div>
+                            <div class="gauge-caption">RISK SCORE</div>
+                        </div>
+                    </div>
+
+                    <!-- Main Banner Verdict -->
+                    <div class="verdict-banner clean" id="verdictBanner">
+                        <div class="verdict-pulse-icon" id="verdictIcon">🛡️</div>
+                        <div class="verdict-content">
+                            <div class="verdict-status" id="verdictStatus">READY FOR ANALYSIS</div>
+                            <div class="verdict-action" id="verdictAction">Select a preset or click Execute Fraud Risk Analysis</div>
+                        </div>
+                    </div>
+
+                    <!-- Telemetry Metrics Grid -->
+                    <div class="telemetry-grid">
+                        <div class="telemetry-cell">
+                            <span class="telemetry-label">ANOMALY SCORE</span>
+                            <span class="telemetry-val mono" id="resAnomalyScore">--</span>
+                        </div>
+                        <div class="telemetry-cell">
+                            <span class="telemetry-label">THRESHOLD</span>
+                            <span class="telemetry-val mono" id="resThreshold">0.036042</span>
+                        </div>
+                        <div class="telemetry-cell">
+                            <span class="telemetry-label">THRESHOLD MARGIN</span>
+                            <span class="telemetry-val mono" id="resDelta">--</span>
+                        </div>
+                        <div class="telemetry-cell">
+                            <span class="telemetry-label">RISK CLASSIFICATION</span>
+                            <span class="telemetry-val" id="resTier">STANDBY</span>
+                        </div>
+                    </div>
+
+                    <!-- Explainability / Root Cause Breakdown -->
+                    <div class="explanation-box">
+                        <div class="explanation-header">
+                            <span>Key Contributing Variance Factors</span>
+                            <span class="info-tag">Statistical Z-Score Deviations</span>
+                        </div>
+                        <div class="feature-bars-list" id="explanationBarsContainer">
+                            <div class="empty-state-text">Execute an inspection to view statistical divergence.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ======================================================== -->
+        <!-- TAB 2: BATCH CSV AUDITOR                                 -->
+        <!-- ======================================================== -->
+        <main class="tab-pane" id="pane-batch">
+            <div class="card batch-card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Batch Transaction Threat Auditor</h3>
+                        <p class="card-subtitle">Upload multi-row transaction CSVs for rapid vectorized anomaly scoring</p>
+                    </div>
+                    <div class="batch-header-actions">
+                        <button class="btn-subtle" id="downloadSampleCsvBtn">
+                            <span>⬇ Download Sample Batch CSV</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Drag & Drop Zone -->
+                <div class="dropzone" id="csvDropzone">
+                    <input type="file" id="batchFileInput" accept=".csv" class="file-input-hidden">
+                    <div class="dropzone-content">
+                        <div class="dropzone-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="12" y1="18" x2="12" y2="12"/>
+                                <line x1="9" y1="15" x2="15" y2="15"/>
+                            </svg>
+                        </div>
+                        <h4>Drop Transaction CSV File Here</h4>
+                        <p>Accepts structured credit card datasets with standard Time, V1–V28, and Amount columns</p>
+                        <div style="display: flex; gap: 12px; margin-top: 6px; flex-wrap: wrap; justify-content: center;">
+                            <button type="button" class="btn-secondary" id="browseFileBtn">Browse Local Files</button>
+                            <button type="button" class="btn-primary" id="loadDemoBatchBtn" style="width: auto; padding: 10px 22px; font-size: 13.5px;">⚡ Run Test with Demo 30-Row Batch</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Batch Results Container -->
+                <div class="batch-results-area hidden" id="batchResultsSection">
+                    <div class="batch-summary-strip">
+                        <div class="batch-stat">
+                            <span class="batch-stat-num" id="batchTotalCount">0</span>
+                            <span class="batch-stat-lbl">TOTAL TRANSACTIONS</span>
+                        </div>
+                        <div class="batch-stat">
+                            <span class="batch-stat-num text-rose" id="batchFraudCount">0</span>
+                            <span class="batch-stat-lbl">FRAUDS DETECTED</span>
+                        </div>
+                        <div class="batch-stat">
+                            <span class="batch-stat-num text-emerald" id="batchCleanCount">0</span>
+                            <span class="batch-stat-lbl">VERIFIED CLEAN</span>
+                        </div>
+                        <div class="batch-stat">
+                            <span class="batch-stat-num text-amber" id="batchFraudRate">0%</span>
+                            <span class="batch-stat-lbl">FRAUD RATIO</span>
+                        </div>
+                        <div class="batch-stat">
+                            <span class="batch-stat-num text-rose" id="batchAtRiskVol">$0.00</span>
+                            <span class="batch-stat-lbl">EXPOSURE AT RISK</span>
+                        </div>
+                    </div>
+
+                    <!-- Filter & Export Controls -->
+                    <div class="table-controls-bar">
+                        <div class="table-filters">
+                            <button class="filter-pill active" data-filter="all" id="filterAllBtn">All (<span id="countFilterAll">0</span>)</button>
+                            <button class="filter-pill rose" data-filter="fraud" id="filterFraudBtn">🚨 Flagged Fraud (<span id="countFilterFraud">0</span>)</button>
+                            <button class="filter-pill emerald" data-filter="clean" id="filterCleanBtn">🛡️ Clean Pass (<span id="countFilterClean">0</span>)</button>
+                        </div>
+                        <div class="table-actions">
+                            <input type="text" class="search-input" id="batchSearchInput" placeholder="Filter by amount, index, score...">
+                            <button class="btn-subtle" id="exportFraudCsvBtn">Export Flagged CSV</button>
+                            <button class="btn-subtle" id="exportFullReportBtn">Export JSON Dossier</button>
+                        </div>
+                    </div>
+
+                    <!-- Batch Data Table -->
+                    <div class="table-responsive">
+                        <table class="data-table" id="batchDataTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Timestamp</th>
+                                    <th>Amount ($)</th>
+                                    <th>Anomaly Score</th>
+                                    <th>Risk %</th>
+                                    <th>Classification</th>
+                                    <th>Verdict</th>
+                                </tr>
+                            </thead>
+                            <tbody id="batchTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ======================================================== -->
+        <!-- TAB 3: REAL-TIME STREAM RADAR                            -->
+        <!-- ======================================================== -->
+        <main class="tab-pane" id="pane-stream">
+            <div class="card stream-card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Real-Time Ingestion Radar</h3>
+                        <p class="card-subtitle">Live payment gateway stream simulator testing real-time anomaly interception</p>
+                    </div>
+                    <div class="stream-controls">
+                        <button class="btn-primary" id="toggleStreamBtn">
+                            <span id="streamPlayIcon">▶</span>
+                            <span id="streamPlayText">Start Ingestion Feed</span>
+                        </button>
+                        <select class="select-control" id="streamSpeedSelect">
+                            <option value="1200">Velocity: Standard (1.2s)</option>
+                            <option value="600" selected>Velocity: High (0.6s)</option>
+                            <option value="250">Velocity: Stress Test (0.25s)</option>
+                        </select>
+                        <button class="btn-subtle" id="clearStreamBtn">Clear Feed</button>
+                    </div>
+                </div>
+
+                <div class="stream-layout">
+                    <!-- Radar Animation Canvas -->
+                    <div class="radar-box">
+                        <div class="radar-sweep-container">
+                            <div class="radar-ring r1"></div>
+                            <div class="radar-ring r2"></div>
+                            <div class="radar-ring r3"></div>
+                            <div class="radar-axis-x"></div>
+                            <div class="radar-axis-y"></div>
+                            <div class="radar-beam" id="radarBeam"></div>
+                            <div class="radar-blip-container" id="radarBlips"></div>
+                        </div>
+                        <div class="radar-metrics">
+                            <div class="radar-stat">
+                                <span class="radar-stat-label">INTERCEPTIONS</span>
+                                <span class="radar-stat-val text-rose" id="streamFraudCount">0</span>
+                            </div>
+                            <div class="radar-stat">
+                                <span class="radar-stat-label">APPROVED SAFE</span>
+                                <span class="radar-stat-val text-emerald" id="streamCleanCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Streaming Feed Table -->
+                    <div class="stream-feed-container">
+                        <div class="stream-feed-header">
+                            <span>PAYMENT INGESTION STREAM</span>
+                            <span class="live-tag">LIVE</span>
+                        </div>
+                        <div class="stream-items-list" id="streamList">
+                            <div class="stream-placeholder">
+                                Click <strong>Start Ingestion Feed</strong> to stream simulated real-world transactions through the scoring engine.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ======================================================== -->
+        <!-- TAB 4: AUDIT LOG & ANALYTICS                             -->
+        <!-- ======================================================== -->
+        <main class="tab-pane" id="pane-analytics">
+            <div class="analytics-grid">
+                <!-- Visual Charts Panel -->
+                <div class="card chart-panel">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Anomaly Score Distribution</h3>
+                            <p class="card-subtitle">Real-time score variance relative to decision boundary</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="scoreDistChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card chart-panel">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Transaction Classification Ratio</h3>
+                            <p class="card-subtitle">Legitimate pass-through vs. flagged fraud exposure</p>
+                        </div>
+                    </div>
+                    <div class="chart-wrapper doughnut-wrap">
+                        <canvas id="ratioDoughnutChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Trail Table -->
+            <div class="card audit-card">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Database Audit Trail</h3>
+                        <p class="card-subtitle">Historical records stored in persistence layer (SQLite / MySQL)</p>
+                    </div>
+                    <div class="audit-actions">
+                        <button class="btn-subtle" id="refreshHistoryBtn">🔄 Refresh Records</button>
+                        <button class="btn-subtle text-rose" id="clearHistoryBtn">🗑 Clear History</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="data-table" id="auditTable">
+                        <thead>
+                            <tr>
+                                <th>Log ID</th>
+                                <th>Timestamp</th>
+                                <th>Amount ($)</th>
+                                <th>Anomaly Score</th>
+                                <th>Risk %</th>
+                                <th>Risk Tier</th>
+                                <th>Decision</th>
+                                <th>Origin</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center">No transactions recorded yet. Execute an inspection to populate audit records.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Model Architecture Card -->
+            <div class="card tech-card">
+                <div class="card-header">
+                    <h3 class="card-title">Isolation Forest Mathematical Architecture</h3>
+                    <span class="tech-tag">scikit-learn Ensemble</span>
+                </div>
+                <div class="tech-specs-grid">
+                    <div class="tech-spec-item">
+                        <div class="spec-label">MODEL ALGORITHM</div>
+                        <div class="spec-value">Isolation Forest (iForest)</div>
+                        <div class="spec-desc">Unsupervised ensemble isolating anomalies via binary recursive partitioning.</div>
+                    </div>
+                    <div class="tech-spec-item">
+                        <div class="spec-label">OPTIMAL THRESHOLD</div>
+                        <div class="spec-value mono">Threshold: 0.036042</div>
+                        <div class="spec-desc">F1-score optimized cutoff boundary calibrated on validation data.</div>
+                    </div>
+                    <div class="tech-spec-item">
+                        <div class="spec-label">FEATURE MATRIX</div>
+                        <div class="spec-value">30 Dimensions (PCA V1–V28, Scaled Amount, Time)</div>
+                        <div class="spec-desc">StandardScaler applied to Amount to normalize high monetary variance.</div>
+                    </div>
+                    <div class="tech-spec-item">
+                        <div class="spec-label">BENCHMARK DATASET</div>
+                        <div class="spec-value">European Cardholder (284,807 Records)</div>
+                        <div class="spec-desc">Real-world skewed distribution containing 492 confirmed fraud cases (0.172%).</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- ======================================================== -->
+        <!-- FOOTER                                                   -->
+        <!-- ======================================================== -->
+        <footer class="app-footer">
+            <div class="footer-left">
+                <span>AEGIS RiskOps // Credit Card Anomaly Detection Platform</span>
+                <span class="footer-dot">•</span>
+                <span>Isolation Forest • Flask REST API • SQLite • Chart.js</span>
+            </div>
+            <div class="footer-right">
+                <span class="mono">STATUS: OPERATIONAL</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>
